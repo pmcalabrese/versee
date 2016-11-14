@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import * as fs from 'fs';
 import * as yargs from 'yargs';
 import * as inquirer from 'inquirer';
@@ -17,8 +19,10 @@ export interface IAccount {
     account: string;
 }
 
+let nopyfile = "./default.nopy";
+
 function decryptText(text: string, password: string) {
-    if ( password.trim() === "" ) {
+    if (password.trim() === "") {
         console.log("the master password cannot be empty");
         process.exit();
     }
@@ -42,9 +46,9 @@ function encryptText(text: string, password: string) {
 }
 
 function readFile(password: string, cb: Function) {
-    fs.readFile('./accounts.json', (err, accounts) => {
+    fs.readFile(nopyfile, (err, accounts) => {
         let parsed_accounts: Array<IAnswer> = [];
-        if (accounts.byteLength !== 0) {
+        if (accounts && accounts.byteLength !== 0) {
             parsed_accounts = JSON.parse(decryptText(accounts.toString(), password));
         }
         cb(parsed_accounts);
@@ -52,7 +56,7 @@ function readFile(password: string, cb: Function) {
 }
 
 function writeFile(password: string, data: string, cb: Function) {
-    fs.writeFile('./accounts.json', encryptText(data, password), (err) => {
+    fs.writeFile(nopyfile, encryptText(data, password), (err) => {
         cb(err);
     });
 }
@@ -88,9 +92,13 @@ function listAllAccounts(master_password: string, cb: Function) {
 }
 
 yargs
-    .command('add <account>', 'add a new account', function (yargs) {
-        return yargs.demand(1);
+    .command('add <account> [file]', 'add a new account', function (yargs) {
+        return yargs
+        .example("nopy add facebook", "add facebook credentials")
+        .demand(1);
     }, (argv: any) => {
+        console.log("argv",argv);
+        nopyfile = argv.file ? argv.file : nopyfile;        
         inquirer.prompt([{
             type: 'input',
             name: 'master_password',
@@ -111,9 +119,12 @@ yargs
             addAccountToFile(master_password, answers);
         });
     })
-    .command('account <account>', 'search for an account', function (yargs) {
-        return yargs.demand(1);
+    .command('search <account> [file]', 'search for an account', function (yargs) {
+        return yargs
+            .example("nopy search facebook", "search credentials for the facebook account")
+            .demand(1)
     }, (argv: any) => {
+        nopyfile = argv.file ? argv.file : nopyfile;
         inquirer.prompt([{
             type: 'input',
             name: 'master_password',
@@ -140,9 +151,12 @@ yargs
             })
         });
     })
-    .command('list', 'list all the accounts', function (yargs) {
-        return yargs.demand(0);
+    .command('list [file]', 'list all the accounts', function (yargs) {
+        return yargs
+        .example("nopy list", "list all accounts")
+        .demand(0);
     }, (argv: any) => {
+        nopyfile = argv.file ? argv.file : nopyfile;
         inquirer.prompt([{
             type: 'input',
             name: 'master_password',
@@ -153,20 +167,47 @@ yargs
             })
         })
     })
-    .command('init', 'init password manager', function (yargs) {
-        return yargs.demand(0);
+    .command('init [file]', 'intialize a credential container file (start from here)',function(yargs) {
+        return yargs
+        .example("nopy init", "intialize a credential container file")
+        .demand(0);
     }, (argv: any) => {
+        nopyfile = argv.file ? argv.file : nopyfile;
         inquirer.prompt([{
             type: 'input',
             name: 'master_password',
-            message: 'master password:'
-        }]).then((answers: IAnswer) => {
+            message: 'Choose your master password (DO NOT LOSE IT!):'
+        }]).then((answers_1: IAnswer) => {
             let arr = [];
-            writeFile(answers.master_password, JSON.stringify(arr), (err) => {
-                if (err) {
-                    console.log("sorry something went wrong");
+            fs.readFile(nopyfile, (err, data) => {
+                if (data && data.byteLength > 0) {
+                    inquirer.prompt([{
+                        type: "confirm",
+                        name: "sure_reinit",
+                        message: nopyfile + " does not seems to be empty, if you continye you will loose all your accounts. \n Are you sure you want to re-init?",
+                        default: false
+                    }]).then((answers_2) => {
+                        if (answers_2.sure_reinit) {
+                            writeFile(answers_1.master_password, JSON.stringify(arr), (err) => {
+                                if (err) {
+                                    console.log("sorry something went wrong", err);
+                                } else {
+                                    console.log(nopyfile+' initialized! Now you can start to add passwords,\ntry: nopy --file="'+nopyfile+'" add facebook');
+                                }
+                            });
+                        } else {
+                            console.log("Initialization aborted. Nothing changed");
+                        }
+                    });
                 } else {
-                    console.log('account.json initialized!');
+                    console.log("answers_1.master_password",answers_1.master_password)
+                    writeFile(answers_1.master_password, JSON.stringify(arr), (err) => {
+                        if (err) {
+                            console.log("sorry something went wrong");
+                        } else {
+                            console.log(nopyfile+' initialized! Now you can start to add passwords,\ntry: nopy --file="'+nopyfile+'" add facebook');
+                        }
+                    });
                 }
             })
         });
