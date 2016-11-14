@@ -5,12 +5,15 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "watch": "tsc -w index.ts"
+    "watch": "tsc -w index.ts",
+    "pi": "npm pack && npm install nopy-1.0.0.tgz -g"
   },
   "keywords": [
     "password",
     "manager"
   ],
+  "preferGlobal": true,
+  "bin": "index.js",
   "author": "Pachito Marco Calabrese <pm.calabrese@gmail.com>",
   "license": "ISC",
   "dependencies": {
