@@ -255,7 +255,7 @@ vorpal
 });
 vorpal
     .command('switch [file]')
-    .description('Switch file the accounts.')
+    .description('Switch file.')
     .alias('use')
     .alias('workon')
     .action(function (args, callback) {
@@ -311,24 +311,29 @@ vorpal
                         type: "confirm",
                         name: "sure_reinit",
                         message: nopyfile + "file exist and does not seems to be empty, if you continue you will loose all your accounts. \n Are you sure you want to continue?",
-                        default: true
+                        default: false
                     }]).then((answers_2) => {
-                    this.prompt([{
-                            type: 'password',
-                            name: 'master_password',
-                            message: 'master password:'
-                        }]).then((answers_password) => {
-                        writeFile(answers_password.master_password, JSON.stringify(arr), (err) => {
-                            if (err) {
-                                console.log("sorry something went wrong.");
-                            }
-                            else {
-                                _.remove(sessions, { nopyfile: nopyfile });
-                                console.log(nopyfile + ' created and initialized! Now you can start to add accounts, try:\nadd facebook.');
-                            }
-                            callback();
+                    if (answers_2.sure_reinit) {
+                        this.prompt([{
+                                type: 'password',
+                                name: 'master_password',
+                                message: 'master password:'
+                            }]).then((answers_password) => {
+                            writeFile(answers_password.master_password, JSON.stringify(arr), (err) => {
+                                if (err) {
+                                    console.log("sorry something went wrong.");
+                                }
+                                else {
+                                    _.remove(sessions, { nopyfile: nopyfile });
+                                    console.log(nopyfile + ' created and initialized! Now you can start to add accounts, try:\nadd facebook.');
+                                }
+                                callback();
+                            });
                         });
-                    });
+                    }
+                    else {
+                        callback();
+                    }
                 });
             }
         }, callback);
