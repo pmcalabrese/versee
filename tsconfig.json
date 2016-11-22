@@ -1,14 +1,20 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    // "outDir": ".",
     "module": "commonjs",
-    "declaration": true,
-    "noImplicitAny": false,
-    "strictNullChecks": true,
+    "target": "es6",
+    "noImplicitAny": true,
     "removeComments": true,
-    "moduleResolution": "node",
+    "preserveConstEnums": true,
     "sourceMap": true,
-    "inlineSources": true
-  }
+    "noImplicitUseStrict": false,
+    "strictNullChecks": false,
+    "suppressImplicitAnyIndexErrors": true,
+    "types": [
+      "node",
+      "lodash"
+    ]
+  },
+  "files":[
+    "index.ts"
+  ]
 }
