@@ -170,6 +170,38 @@ vorpal
     });
 });
 vorpal
+    .command('edit <account> [file]')
+    .description('Add an account.')
+    .action(function (args, callback) {
+    fileExists(args.file).then((exist) => {
+        isMasterPasswordIsCorrect(this, (answers_password, parsed_accounts) => {
+            if (!accountExist(parsed_accounts, args.account)) {
+                console.log("Sorry there is no account called " + args.account);
+                callback();
+                return;
+            }
+            this.prompt([{
+                    type: 'input',
+                    name: 'username',
+                    message: 'username:',
+                    default: parsed_accounts[0].username
+                }, {
+                    type: 'input',
+                    name: 'password',
+                    message: 'password:',
+                    default: parsed_accounts[0].password
+                }]).then((answers) => {
+                answers.account = args.account;
+                let account = answers;
+                addAccountToFile(answers_password.master_password, parsed_accounts, answers);
+                callback();
+            });
+        }, callback);
+    }, () => {
+        callback();
+    });
+});
+vorpal
     .command('remove <account> [file]')
     .description('Remove an account.')
     .action(function (args, callback) {
