@@ -57,11 +57,6 @@ function writeFile(password, data, cb) {
     });
 }
 function removeAccountToFile(master_password, parsed_accounts, answers) {
-    let exist = _.find(parsed_accounts, { account: answers.account });
-    if (!exist) {
-        console.log("sorry this account does not exist");
-        return;
-    }
     _.remove(parsed_accounts, { account: answers.account });
     let modified_data = JSON.stringify(parsed_accounts);
     writeFile(master_password, modified_data, (err) => {
@@ -70,11 +65,19 @@ function removeAccountToFile(master_password, parsed_accounts, answers) {
     });
 }
 function accountExist(parsed_accounts, account) {
-    let exist = _.find(parsed_accounts, { account: account });
-    return !!exist;
+    return (_.findIndex(parsed_accounts, { account: account }) !== -1);
 }
 function addAccountToFile(master_password, parsed_accounts, answers) {
     parsed_accounts.push(answers);
+    let modified_data = JSON.stringify(parsed_accounts);
+    writeFile(master_password, modified_data, (err) => {
+        if (err)
+            throw err;
+    });
+}
+function editAccountToFile(master_password, parsed_accounts, answers) {
+    let i = _.findIndex(parsed_accounts, { account: answers.account });
+    parsed_accounts[i] = answers;
     let modified_data = JSON.stringify(parsed_accounts);
     writeFile(master_password, modified_data, (err) => {
         if (err)
@@ -170,8 +173,33 @@ vorpal
     });
 });
 vorpal
+    .command('duplicate <account> <duplicate_account>')
+    .description('Duplicate an account.')
+    .action(function (args, callback) {
+    fileExists(args.file).then((exist) => {
+        isMasterPasswordIsCorrect(this, (answers_password, parsed_accounts) => {
+            if (!accountExist(parsed_accounts, args.account)) {
+                console.log("Sorry this account does not exist");
+                callback();
+                return;
+            }
+            if (accountExist(parsed_accounts, args.duplicate_account)) {
+                console.log("Sorry this account already exist");
+                callback();
+                return;
+            }
+            let duplicate_account = _.clone(_.find(parsed_accounts, { account: args.account }));
+            duplicate_account.account = args.duplicate_account;
+            addAccountToFile(answers_password.master_password, parsed_accounts, duplicate_account);
+            callback();
+        }, callback);
+    }, () => {
+        callback();
+    });
+});
+vorpal
     .command('edit <account> [file]')
-    .description('Add an account.')
+    .description('Edit an account.')
     .action(function (args, callback) {
     fileExists(args.file).then((exist) => {
         isMasterPasswordIsCorrect(this, (answers_password, parsed_accounts) => {
@@ -180,20 +208,21 @@ vorpal
                 callback();
                 return;
             }
+            let default_account = _.find(parsed_accounts, { account: args.account });
             this.prompt([{
                     type: 'input',
                     name: 'username',
                     message: 'username:',
-                    default: parsed_accounts[0].username
+                    default: default_account.username
                 }, {
                     type: 'input',
                     name: 'password',
                     message: 'password:',
-                    default: parsed_accounts[0].password
+                    default: default_account.password
                 }]).then((answers) => {
                 answers.account = args.account;
                 let account = answers;
-                addAccountToFile(answers_password.master_password, parsed_accounts, answers);
+                editAccountToFile(answers_password.master_password, parsed_accounts, answers);
                 callback();
             });
         }, callback);
@@ -207,6 +236,11 @@ vorpal
     .action(function (args, callback) {
     fileExists(args.file).then((exist) => {
         isMasterPasswordIsCorrect(this, (answers_password, parsed_accounts) => {
+            if (!accountExist(parsed_accounts, args.account)) {
+                console.log("Sorry there is no account called " + args.account);
+                callback();
+                return;
+            }
             this.prompt([{
                     type: "confirm",
                     name: "sure_delete",
@@ -299,16 +333,12 @@ vorpal
     });
 });
 vorpal
-    .command('which [file]')
+    .command('which')
     .description('Show which file I am workin on.')
     .alias('show')
     .action(function (args, callback) {
-    fileExists(args.file).then((exist) => {
-        console.log("Now you are working on: " + nopyfile);
-        callback();
-    }, () => {
-        callback();
-    });
+    console.log("Now you are working on: " + nopyfile);
+    callback();
 });
 vorpal
     .command('init [file]')

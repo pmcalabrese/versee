@@ -1,12 +1,12 @@
 {
-  "name": "nopy",
+  "name": "verse",
   "version": "1.0.0",
   "description": "A simple node password manager",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "tsc -w index.ts",
-    "pi": "npm pack && npm install nopy-1.0.0.tgz -g"
+    "pi": "npm pack && npm install verse-1.0.0.tgz -g"
   },
   "keywords": [
     "password",
