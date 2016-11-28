@@ -1,193 +1,21 @@
 #!/usr/bin/env node
 
+/// <reference path="interfaces.d.ts" />
+
 import * as fs from 'fs';
 import * as _ from 'lodash';
-import * as crypto from 'crypto';
+import * as file from './file';
 
 const vorpal = require('vorpal')();
-const Table = require('easy-table');
-
-interface Isession {
-    nopyfile: string;
-    answer_password: IAnswerPassword | null;
-    parsed_accounts: Array<IAccount> | null;
-}
-
-let nopyfile = "default.nopy";
-let sessions: Array<Isession> = [];
-
-interface IAnswer {
-    username: string;
-    password: string;
-    account: string;
-}
-
-interface AnswerPasswordFunc {
-    (
-        answer_password: IAnswerPassword,
-        parsed_accounts: Array<IAccount>
-    )
-}
-
-interface IAnswerPassword {
-    master_password: string;
-}
-
-interface IAccount {
-    username: string;
-    password: string;
-    account: string;
-}
-
-function decryptText(text: string, password: string) {
-    const cipher = crypto.createDecipher('aes256', password);
-    let decrypted = "";
-    try {
-        decrypted = cipher.update(text, 'binary', 'utf8');
-        decrypted += cipher.final('utf8');
-        return decrypted;
-    } catch (error) {
-        console.log("master password is wrong, please retry");
-        return null;
-    }
-}
-
-function encryptText(text: string, password: string) {
-    const cipher = crypto.createCipher('aes256', password);
-    let encrypted = cipher.update(text, 'utf8', 'binary');
-    encrypted += cipher.final('binary');
-    return encrypted;
-}
-
-function readFile(password: string, cb: Function, vcb) {
-    if (password.trim() === '') {
-        console.log("the master password cannot be empty");
-        vcb();
-        return;
-    }
-    fs.readFile(nopyfile, (err, accounts) => {
-        if (err) {
-            console.log(nopyfile + " file does not exist");
-            vcb();
-            return;
-        }
-        let parsed_accounts: Array<IAnswer> = [];
-        if (accounts && accounts.byteLength !== 0) {
-            parsed_accounts = JSON.parse(decryptText(accounts.toString(), password));
-            if (parsed_accounts) {
-                cb(parsed_accounts);
-            } else {
-                vcb();
-                return;
-            }
-        }
-    });
-}
-
-function writeFile(password: string, data: string, cb: Function) {
-    fs.writeFile(nopyfile, encryptText(data, password), (err) => {
-        cb(err);
-    });
-}
-
-function removeAccountToFile(master_password: string, parsed_accounts: Array<IAccount>, answers: IAccount) {
-    _.remove(parsed_accounts, { account: answers.account });
-    let modified_data = JSON.stringify(parsed_accounts);
-    writeFile(master_password, modified_data, (err) => {
-        if (err) throw err;
-    });
-}
-
-function accountExist(parsed_accounts: Array<IAccount>, account:IAccount) {
-    return (_.findIndex(parsed_accounts, { account: account }) !== -1);
-}
-
-function addAccountToFile(master_password: string, parsed_accounts: Array<IAccount>, answers: IAccount) {
-    parsed_accounts.push(answers)
-    let modified_data = JSON.stringify(parsed_accounts);
-    writeFile(master_password, modified_data, (err) => {
-        if (err) throw err;
-    });
-}
-
-function editAccountToFile(master_password: string, parsed_accounts: Array<IAccount>, answers: IAccount) {
-    let i  = _.findIndex(parsed_accounts, {account: answers.account});
-    parsed_accounts[i] = answers;
-    let modified_data = JSON.stringify(parsed_accounts);
-    writeFile(master_password, modified_data, (err) => {
-        if (err) throw err;
-    });
-}
-
-function listByAccount(master_password: string, parsed_accounts: Array<IAccount>, account_to_find: string, cb: Function) {
-    let filtered_parsed_accounts = _.filter(parsed_accounts, (account: IAccount) => {
-        return _.includes(account.account, account_to_find);
-    })
-    return cb(filtered_parsed_accounts as Array<IAccount>);
-}
-
-function isMasterPasswordIsCorrect(inquirer, cb: AnswerPasswordFunc, vcb) {
-    let session = _.find(sessions, { nopyfile: nopyfile });
-    if (session && session.answer_password && session.parsed_accounts) {
-        cb(session.answer_password, session.parsed_accounts);
-        return;
-    }
-    inquirer.prompt([{
-        type: 'password',
-        name: 'master_password',
-        message: 'master password:'
-    }]).then((answer_password: IAnswerPassword) => {
-        readFile(answer_password.master_password, function (parsed_accounts: Array<IAccount>) {
-            sessions.push({
-                nopyfile: nopyfile,
-                answer_password: answer_password,
-                parsed_accounts: parsed_accounts
-            });
-            cb(answer_password, parsed_accounts);
-        }, vcb);
-    });
-}
-
-function print(accounts: Array<IAccount>) {
-    var t = new Table
-
-    accounts.forEach(function (account) {
-        t.cell('Account', account.account)
-        t.cell('Username', account.username)
-        t.cell('Password', account.password)
-        t.newRow()
-    })
-
-    console.log(t.toString())
-}
-
-function fileExists(path_file: string) {
-    return new Promise((resolve, reject) => {
-        if (!path_file) {
-            resolve(nopyfile);
-        }
-        fs.stat(path_file, function (err, stat) {
-            if (err == null) {
-                nopyfile = path_file;
-                resolve(nopyfile);
-            } else if (err.code == 'ENOENT') {
-                console.log( path_file + " file does not exist");
-                reject();
-            } else {
-                console.log('Something went wrong: ', err.code);
-                reject();
-            }
-        });
-    });
-}
+const ncp = require("copy-paste");
 
 vorpal
     .command('add <account> [file]')
     .description('Add an account.')
     .action(function (args, callback) {
-        fileExists(args.file).then((exist) => {
-            isMasterPasswordIsCorrect(this, (answers_password, parsed_accounts) => {
-                if (accountExist(parsed_accounts, args.account)) {
+        file.exist(args.file).then((exist) => {
+            file.isMasterPasswordCorrect(this, (answers_password, parsed_accounts) => {
+                if (file.accountExist(parsed_accounts, args.account)) {
                     console.log("An account called " + args.account + " already exist, choose another name");
                     callback();
                     return;
@@ -203,7 +31,7 @@ vorpal
                 }]).then((answers: IAnswer) => {
                     answers.account = args.account;
                     let account = answers;
-                    addAccountToFile(answers_password.master_password, parsed_accounts, answers);
+                    file.addAccount(answers_password.master_password, parsed_accounts, answers);
                     callback();
                 });
             }, callback);
@@ -216,19 +44,19 @@ vorpal
     .command('duplicate <account> <duplicate_account>')
     .description('Duplicate an account.')
     .action(function (args, callback) {
-        fileExists(args.file).then((exist) => {
-            isMasterPasswordIsCorrect(this, (answers_password, parsed_accounts) => {
-                if (!accountExist(parsed_accounts, args.account)) {
+        file.exist(args.file).then((exist) => {
+            file.isMasterPasswordCorrect(this, (answers_password, parsed_accounts) => {
+                if (!file.accountExist(parsed_accounts, args.account)) {
                     console.log("Sorry this account does not exist");
                     callback();
                     return;
                 }
-                if (accountExist(parsed_accounts, args.duplicate_account)) {
+                if (file.accountExist(parsed_accounts, args.duplicate_account)) {
                     console.log("Sorry this account already exist");
                     callback();
                     return;
                 }
-                let duplicate_account = _.clone(_.find(parsed_accounts, {account: args.account}))
+                let duplicate_account = _.clone(_.find(parsed_accounts, { account: args.account }))
                 duplicate_account.account = args.duplicate_account;
                 // this.prompt([{
                 //     type: 'input',
@@ -241,8 +69,8 @@ vorpal
                 // }]).then((answers: IAnswer) => {
                 //     answers.account = args.account;
                 //     let account = answers;
-                    addAccountToFile(answers_password.master_password, parsed_accounts, duplicate_account);
-                    callback();
+                file.addAccount(answers_password.master_password, parsed_accounts, duplicate_account);
+                callback();
                 // });
             }, callback);
         }, () => {
@@ -254,19 +82,19 @@ vorpal
     .command('edit <account> [file]')
     .description('Edit an account.')
     .action(function (args, callback) {
-        fileExists(args.file).then((exist) => {
-            isMasterPasswordIsCorrect(this, (answers_password, parsed_accounts) => {
-                if (!accountExist(parsed_accounts, args.account)) {
+        file.exist(args.file).then((exist) => {
+            file.isMasterPasswordCorrect(this, (answers_password, parsed_accounts) => {
+                if (!file.accountExist(parsed_accounts, args.account)) {
                     console.log("Sorry there is no account called " + args.account);
                     callback();
                     return;
                 }
-                let default_account = _.find(parsed_accounts, { account: args.account});
+                let default_account = _.find(parsed_accounts, { account: args.account });
                 this.prompt([{
                     type: 'input',
                     name: 'username',
                     message: 'username:',
-                    default: default_account.username;
+                    default: default_account.username
                 }, {
                     type: 'input',
                     name: 'password',
@@ -275,7 +103,7 @@ vorpal
                 }]).then((answers: IAnswer) => {
                     answers.account = args.account;
                     let account = answers;
-                    editAccountToFile(answers_password.master_password, parsed_accounts, answers);
+                    file.editAccount(answers_password.master_password, parsed_accounts, answers);
                     callback();
                 });
             }, callback);
@@ -285,12 +113,13 @@ vorpal
     });
 
 vorpal
-    .command('remove <account> [file]')
+    .command('Remove <account> [file]')
+    .alias('rm')
     .description('Remove an account.')
     .action(function (args, callback) {
-        fileExists(args.file).then((exist) => {
-            isMasterPasswordIsCorrect(this, (answers_password, parsed_accounts) => {
-                if (!accountExist(parsed_accounts, args.account)) {
+        file.exist(args.file).then((exist) => {
+            file.isMasterPasswordCorrect(this, (answers_password, parsed_accounts) => {
+                if (!file.accountExist(parsed_accounts, args.account)) {
                     console.log("Sorry there is no account called " + args.account);
                     callback();
                     return;
@@ -302,7 +131,7 @@ vorpal
                     default: false
                 }]).then((answers) => {
                     if (answers.sure_delete) {
-                        removeAccountToFile(answers_password.master_password, parsed_accounts, { account: args.account });
+                        file.removeAccount(answers_password.master_password, parsed_accounts, { account: args.account });
                         console.log("account deleted");
                     } else {
                         console.log("nothing changed");
@@ -317,12 +146,12 @@ vorpal
 
 vorpal
     .command('search <account> [file]')
-    .description('search for an account.')
     .alias('find')
+    .description('search for an account.')
     .action(function (args, callback) {
-        fileExists(args.file).then((exist) => {
-            isMasterPasswordIsCorrect(this, (answers_password, parsed_accounts) => {
-                listByAccount(answers_password.master_password, parsed_accounts, args.account, (accounts: Array<IAccount>) => {
+        file.exist(args.file).then((exist) => {
+            file.isMasterPasswordCorrect(this, (answers_password, parsed_accounts) => {
+                file.listByAccount(answers_password.master_password, parsed_accounts, args.account, (accounts: Array<IAccount>) => {
                     if (accounts.length > 1) {
                         let account_list = _.map(accounts, (account) => {
                             return account.account
@@ -335,19 +164,11 @@ vorpal
                             default: account_list[0]
                         }]).then((answers) => {
                             let account_choosen = [_.find(accounts, { account: answers.account_choosen })]
-                            if (args.p) {
-                                console.log(account_choosen[0].password);
-                            } else {
-                                print(account_choosen);
-                            }
+                            file.print(account_choosen, true);
                             callback();
                         });
                     } else {
-                        if (args.p) {
-                            console.log(accounts[0].password);
-                        } else {
-                            print(accounts);
-                        }
+                        file.print(accounts);
                         callback();
                     }
                 });
@@ -358,13 +179,98 @@ vorpal
     });
 
 vorpal
-    .command('list [file]')
-    .description('List all the accounts.')
-    .alias('ls')
+    .command('copy password <account> [file]')
+    .alias('copy')
+    .description('copy in the clipboard the password.')
     .action(function (args, callback) {
-        fileExists(args.file).then((exist) => {
-            isMasterPasswordIsCorrect(this, (answers_password, parsed_accounts) => {
-                print(parsed_accounts);
+        console.log("args",args);
+        file.exist(args.file).then((exist) => {
+            file.isMasterPasswordCorrect(this, (answers_password, parsed_accounts) => {
+                file.listByAccount(answers_password.master_password, parsed_accounts, args.account, (accounts: Array<IAccount>) => {
+                    if (accounts.length > 1) {
+                        let account_list = _.map(accounts, (account) => {
+                            return account.account
+                        });
+                        this.prompt([{
+                            type: 'list',
+                            name: 'account_choosen',
+                            message: 'account list',
+                            choices: account_list,
+                            default: account_list[0]
+                        }]).then((answers) => {
+                            let account_choosen = [_.find(accounts, { account: answers.account_choosen })]
+                            copy(account_choosen[0].password, function () {
+                                callback();
+                            });
+                        });
+                    } else {
+                        copy(accounts[0].password, function () {
+                            callback();
+                        });
+                    }
+                });
+            }, callback);
+        }, () => {
+            callback();
+        });
+    });
+
+vorpal
+    .command('copy username <account> [file]')
+    .description('copy in the clipboard the password.')
+    .action(function (args, callback) {
+        console.log("args",args);
+        file.exist(args.file).then((exist) => {
+            file.isMasterPasswordCorrect(this, (answers_password, parsed_accounts) => {
+                file.listByAccount(answers_password.master_password, parsed_accounts, args.account, (accounts: Array<IAccount>) => {
+                    if (accounts.length > 1) {
+                        let account_list = _.map(accounts, (account) => {
+                            return account.account
+                        });
+                        this.prompt([{
+                            type: 'list',
+                            name: 'account_choosen',
+                            message: 'account list',
+                            choices: account_list,
+                            default: account_list[0]
+                        }]).then((answers) => {
+                            let account_choosen = [_.find(accounts, { account: answers.account_choosen })]
+                            ncp.copy(account_choosen[0].username, function () {
+                                callback();
+                            });
+                        });
+                    } else {
+                        ncp.copy(accounts[0].username, function () {
+                            callback();
+                        });
+                    }
+                });
+            }, callback);
+        }, () => {
+            callback();
+        });
+    });
+
+function copy(text: string, cb, time = 10000) {
+    var t;
+    clearTimeout(t);
+    ncp.copy(text, function () {
+        console.log("\nPassword is copied in the clipboard and it will stay for for the next 10 seconds");
+        cb();
+        var t = setTimeout(function () {
+            ncp.copy("", function () { });
+        }, time);
+    });
+}
+
+vorpal
+    .command('list [file]')
+    .alias("ls")
+    .description('List all the accounts.')
+    .action(function (args, callback) {
+        file.exist(args.file).then((exist) => {
+            file.isMasterPasswordCorrect(this, (answers_password, parsed_accounts) => {
+                file.print(parsed_accounts);
                 callback();
             }, callback);
         }, () => {
@@ -374,12 +280,12 @@ vorpal
 
 vorpal
     .command('switch [file]')
-    .description('Switch file.')
     .alias('use')
     .alias('workon')
+    .description('Switch file.')
     .action(function (args, callback) {
-        fileExists(args.file).then((exist) => {
-            console.log("Now you are working on: " + nopyfile);
+        file.exist(args.file).then((exist) => {
+            console.log("Now you are working on: " + file.default_file);
             callback();
         }, () => {
             callback();
@@ -389,44 +295,44 @@ vorpal
 vorpal
     .command('which')
     .description('Show which file I am workin on.')
-    .alias('show')
+    .alias('file')
     .action(function (args, callback) {
-        console.log("Now you are working on: " + nopyfile);
+        console.log("Now you are working on: " + file.default_file);
         callback();
     });
 
 vorpal
     .command('init [file]')
-    .description('Init a new container files.')
     .alias('i')
+    .description('Init a new container files.')
     .action(function (args, callback) {
-        nopyfile = args.file ? args.file : nopyfile;
+        file.default_file = args.file ? args.file : file.default_file;
         let arr = [];
-        fs.readFile(nopyfile, (err, data) => {
+        fs.readFile(file.default_file, (err, data) => {
             if (err) {
-                console.log(nopyfile + " does not exist and it will be created!")
+                console.log(file.default_file + " does not exist and it will be created!")
                 this.prompt([{
                     type: 'password',
                     name: 'master_password',
                     message: 'master password:'
                 }]).then((answers_password) => {
-                    writeFile(answers_password.master_password, JSON.stringify(arr), (err) => {
+                    file.write(answers_password.master_password, JSON.stringify(arr), (err) => {
                         if (err) {
                             console.log("sorry something went wrong");
                         } else {
-                            console.log(nopyfile + ' created and initialized! Now you can start to add accounts, try:\nadd facebook');
+                            console.log(file.default_file + ' created and initialized! Now you can start to add accounts, try:\nadd facebook');
                         }
                         callback();
                     });
                 });
                 return
             }
-            isMasterPasswordIsCorrect(this, (answers_password, parsed_accounts) => {
+            file.isMasterPasswordCorrect(this, (answers_password, parsed_accounts) => {
                 if (data && data.byteLength > 0) {
                     this.prompt([{
                         type: "confirm",
                         name: "sure_reinit",
-                        message: nopyfile + "file exist and does not seems to be empty, if you continue you will loose all your accounts. \n Are you sure you want to continue?",
+                        message: file.default_file + "file exist and does not seems to be empty, if you continue you will loose all your accounts. \n Are you sure you want to continue?",
                         default: false
                     }]).then((answers_2) => {
                         if (answers_2.sure_reinit) {
@@ -435,12 +341,12 @@ vorpal
                                 name: 'master_password',
                                 message: 'master password:'
                             }]).then((answers_password: IAnswerPassword) => {
-                                writeFile(answers_password.master_password, JSON.stringify(arr), (err) => {
+                                file.write(answers_password.master_password, JSON.stringify(arr), (err) => {
                                     if (err) {
                                         console.log("sorry something went wrong.");
                                     } else {
-                                        _.remove(sessions, { nopyfile: nopyfile });
-                                        console.log(nopyfile + ' created and initialized! Now you can start to add accounts, try:\nadd facebook.');
+                                        _.remove(file.sessions, { default_file: file.default_file });
+                                        console.log(file.default_file + ' created and initialized! Now you can start to add accounts, try:\nadd facebook.');
                                     }
                                     callback();
                                 });
