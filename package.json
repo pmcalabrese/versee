@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "tsc",
-    "pi": "npm pack && npm install verse-1.0.0.tgz -g"
+    "installpackage": "npm install verse-1.0.0.tgz -g",
+    "pi": "npm pack && npm run installpackage"
   },
   "keywords": [
     "password",
