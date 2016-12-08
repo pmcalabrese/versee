@@ -37,6 +37,7 @@ vorpal
 });
 vorpal
     .command('duplicate <account> <duplicate_account>')
+    .alias('clone')
     .description('Duplicate an account.')
     .action(function (args, callback) {
     file.exist(args.file).then((exist) => {
@@ -281,7 +282,7 @@ vorpal
 vorpal
     .command('init [file]')
     .alias('i')
-    .description('Init a new container files.')
+    .description('Init a new file.')
     .action(function (args, callback) {
     file.default_file = args.file ? args.file : file.default_file;
     let arr = [];
