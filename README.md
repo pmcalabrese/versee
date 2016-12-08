@@ -1,5 +1,5 @@
-# VERSE
-VERSE is an Interactive CLI Password Manager written in Typescript and powered by NodeJS. VERSE was developed, because I needed a simple yet powerfull password manager with the following features:
+# versee
+Versee is an Interactive CLI Password Manager written in Typescript and powered by NodeJS. versee was developed, because I needed a simple yet powerfull password manager with the following features:
 
 - File based
 - Secure with AES256
@@ -11,17 +11,17 @@ VERSE is an Interactive CLI Password Manager written in Typescript and powered b
 
 ## Install
 
-VERSE is written in NodeJS. If you do not have it already you can install from [NodeJS website](https://nodejs.org/en/) .
+versee is written in NodeJS. If you do not have it already you can install from [NodeJS website](https://nodejs.org/en/) .
 
-    npm install verse -g
+    npm install versee -g
 
 ## Getting started
 
-After install it you can launch a verse session simply by typing
+After install it you can launch a versee session simply by typing
     
-    verse
+    versee
 
-now you are in verse session, here you can type commands. We will start to type ``` help ``` for show the list of availble commands. Now let's create a new file that will hold our credentials (we will refer to credentials as douple of username and passwords). Move to the folder you want to keep the file and type:
+now you are in versee session, here you can type commands. We will start to type ``` help ``` for show the list of availble commands. Now let's create a new file that will hold our credentials (we will refer to credentials as douple of username and passwords). Move to the folder you want to keep the file and type:
 
     init personal_credentials
 
@@ -36,7 +36,7 @@ we are asked to enter the master_password. After enter the master password we ca
 
     add twitter
 
-We notice that this time VERSE did not asked our master password. This because VERSE remembers the password (in memory) during the session, so you do not have to type for every operation. Let's list the credentials that we have stored.
+We notice that this time versee did not asked our master password. This because versee remembers the password (in memory) during the session, so you do not have to type for every operation. Let's list the credentials that we have stored.
 
     list
 

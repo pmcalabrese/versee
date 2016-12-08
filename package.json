@@ -1,12 +1,12 @@
 {
-  "name": "verse",
+  "name": "versee",
   "version": "1.0.0",
   "description": "A simple node password manager",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "tsc",
-    "installpackage": "npm install verse-1.0.0.tgz -g",
+    "installpackage": "npm install versee-1.0.0.tgz -g",
     "pi": "npm pack && npm run installpackage"
   },
   "keywords": [
