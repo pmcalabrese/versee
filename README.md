@@ -1,5 +1,5 @@
 # VERSE
-VERSE is an Interactive CLI Password Manager. VERSE was developed, because I needed a simple yet powerfull password manager with the following features:
+VERSE is an Interactive CLI Password Manager written in Typescript and powered by NodeJS. VERSE was developed, because I needed a simple yet powerfull password manager with the following features:
 
 - File based
 - Secure with AES256
