@@ -16,7 +16,7 @@ import * as crypto from 'crypto';
 const Table = require('easy-table');
 
 class File {
-    private _default_file = "default.nopy";
+    private _default_file = "default.versee";
     sessions: Array<Isession> = [];
 
     get default_file(): string {
@@ -55,7 +55,7 @@ class File {
         }
         fs.readFile(this.default_file, (err, accounts) => {
             if (err) {
-                console.log(this.default_file + " file does not exist");
+                console.log(this.default_file + " file does not exist, try:\nworkon <your file>");
                 vcb();
                 return;
             }
@@ -159,7 +159,7 @@ class File {
                     this.default_file = path_file; // here
                     resolve(this.default_file);
                 } else if (err.code == 'ENOENT') {
-                    console.log(path_file + " file does not exist");
+                    console.log(path_file + " file does not exist, try:\nworkon <your file>");
                     reject();
                 } else {
                     console.log('Something went wrong: ', err.code);

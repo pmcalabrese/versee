@@ -169,7 +169,7 @@ vorpal
                             callback();
                         });
                     } else {
-                        file.print(accounts);
+                        file.print(accounts, true);
                         callback();
                     }
                 });

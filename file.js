@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const Table = require('easy-table');
 class File {
     constructor() {
-        this._default_file = "default.nopy";
+        this._default_file = "default.versee";
         this.sessions = [];
     }
     get default_file() {
@@ -41,7 +41,7 @@ class File {
         }
         fs.readFile(this.default_file, (err, accounts) => {
             if (err) {
-                console.log(this.default_file + " file does not exist");
+                console.log(this.default_file + " file does not exist, try:\nworkon <your file>");
                 vcb();
                 return;
             }
@@ -139,7 +139,7 @@ class File {
                     resolve(this.default_file);
                 }
                 else if (err.code == 'ENOENT') {
-                    console.log(path_file + " file does not exist");
+                    console.log(path_file + " file does not exist, try:\nworkon <your file>");
                     reject();
                 }
                 else {
