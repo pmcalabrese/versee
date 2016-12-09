@@ -1,4 +1,4 @@
-# versee
+# Versee
 Versee is an Interactive CLI Password Manager written in Typescript and powered by NodeJS. versee was developed, because I needed a simple yet powerfull password manager with the following features:
 
 - File based
