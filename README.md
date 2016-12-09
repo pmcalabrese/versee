@@ -7,11 +7,11 @@ Versee is an Interactive CLI Password Manager written in Typescript and powered 
 - OS agnostic
 - Simple to use and (few commands)
 - Command Line Interface
-- No embedded method for share password (you can choose your own)
+- No embedded mechanisms for share password (you can choose your own, for example Dropbox SugarSync or whatever)
 
 ## Install
 
-versee is written in NodeJS. If you do not have it already you can install from [NodeJS website](https://nodejs.org/en/) .
+Versee is written in Typescript and powered by in NodeJS. If you do not have it already you can install from [NodeJS website](https://nodejs.org/en/) .
 
     npm install versee -g
 
@@ -21,7 +21,7 @@ After install it you can launch a versee session simply by typing
     
     versee
 
-now you are in versee session, here you can type commands. We will start to type ``` help ``` for show the list of availble commands. Now let's create a new file that will hold our credentials (we will refer to credentials as douple of username and passwords). Move to the folder you want to keep the file and type:
+now you are in versee session, here you can type commands. We will start to type ``` help ``` for show the list of availble commands. Now let's create a new file called *personal_credentials* that will hold our personal username password for our social logins (we will refer to credentials as douple of username and passwords). Move to the folder you want to keep the file (let's say the home folder) and type:
 
     init personal_credentials
 
@@ -36,7 +36,7 @@ we are asked to enter the master_password. After enter the master password we ca
 
     add twitter
 
-We notice that this time versee did not asked our master password. This because versee remembers the password (in memory) during the session, so you do not have to type for every operation. Let's list the credentials that we have stored.
+We notice that this time versee did not asked our master password. This because versee remembers the password (in memory) during the session, so you do not have to type for every operation. Let's list the credentials that we have stored. List **will not show the password for security reasons**. If you want to show the password of one account you can use the command `search`. For example `search facebook`.
 
     list
 
@@ -52,7 +52,7 @@ it will switch to use our personal_credentials file. If you loose track on which
 
     which
 
-
+If you want to quit versee just type `exit`.
 
 
 
